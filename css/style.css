@@ -596,3 +596,10 @@ html[lang=ur] .sec h2{font-size:clamp(24px,2.6vw,34px)}
 .plan a.fl:hover span{text-decoration:underline;text-underline-offset:3px}
 @media (hover:none){.plan a.fl em{display:none}.plan a.fl span{text-decoration:underline dotted;text-underline-offset:3px}}
 .stat span{white-space:nowrap}
+
+.case .csi{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;color:#fff;flex-shrink:0}
+.case .csi svg{width:24px;height:24px}
+.case .big{white-space:nowrap}
+.sec .note.fee{margin-top:6px;color:#475569}
+.sec .note.fee a{color:#16a34a;font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.case .big,.bc b{direction:ltr;unicode-bidi:isolate;display:inline-block}
