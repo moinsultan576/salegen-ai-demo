@@ -52,3 +52,10 @@ npm install
 npx playwright install chromium
 npm test
 ```
+
+## WhatsApp alerts for new leads (free, optional)
+Get a WhatsApp message on your own number whenever someone starts a demo or sends the contact form.
+1. On your phone open https://www.callmebot.com/blog/free-api-whatsapp-messages/ and save the CallMeBot number shown there.
+2. Send it this WhatsApp message: `I allow callmebot to send me messages` — it replies with your API key.
+3. Vercel → Settings → Environment Variables → add `CALLMEBOT_APIKEY` = that key (optional `CALLMEBOT_PHONE` = 966546904384).
+4. Redeploy. Email alerts keep working as before.

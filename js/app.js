@@ -179,6 +179,7 @@ let S = store.get('sg_state');
 if (!S || S.v !== 3 || NOW() - S.seededAt > 12 * HR) { S = seed(); }
 S.convos.forEach(c => { c.pending = false; });
 const save = () => store.set('sg_state', S);
+const waAlert = d => { if (!location.protocol.startsWith('http')) return; try { fetch('/api/notify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign({ lang: LANG }, d)) }).catch(() => {}); } catch (e) {} };
 const getUser = () => { const u = store.get('sg_user'); return u && u.name && u.email ? u : null; };
 const uName = () => (getUser() || {}).name || 'Demo User';
 const uSub = () => { const u = getUser() || {}; return u.company || t('role'); };
@@ -867,6 +868,7 @@ document.addEventListener('submit', e => {
       fetch('https://formsubmit.co/ajax/' + OWNER.email, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify({ _subject: 'New demo visitor — SaleGen AI: ' + name, _template: 'table', _captcha: 'false', name, email, company: user.company || '-', whatsapp: user.phone || '-', language: LANG, opened: ui.next || '#/app/dashboard' }) }).catch(() => {});
     } catch (er) {}
+    waAlert({ type: 'demo', name, email, company: user.company, phone: user.phone });
     const to = ui.next && ui.next !== '#/login' ? ui.next : '#/app/dashboard'; ui.next = null;
     location.hash = to; return;
   }
@@ -876,6 +878,7 @@ document.addEventListener('submit', e => {
     S.leads.push({ id, name: D.name, ind: null, biz: D.co || t('src_website'), city: 'riyadh', stage: 'new', ts: NOW(), src: 'website', camp: 'web', value: 10000, score: 64, q: false, email: D.email, phone: D.phone, created: NOW() });
     S.convos.push({ id: 'c' + NOW(), lead: id, ch: 'email', ts: NOW(), unread: true, msgs: [{ d: 'in', text: D.msg || t('ctMsg'), ts: NOW() }] });
     notify('tLive', { src: t('src_website'), name: D.name }, 'users', 'g-green'); save();
+    waAlert({ type: 'contact', name: D.name, email: D.email, company: D.co, phone: D.phone, message: D.msg });
     const btn = f.querySelector('button[type=submit]'); if (btn) btn.disabled = true;
     const waText = `${t('ctWaIntro')}\n${t('ctName')}: ${D.name}\n${t('ctCo')}: ${D.co || '-'}\n${t('ctPhone')}: ${D.phone}\n${t('ctEmail')}: ${D.email || '-'}\n${D.msg || ''}`;
     let finished = false;
