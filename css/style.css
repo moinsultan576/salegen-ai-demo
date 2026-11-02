@@ -581,3 +581,4 @@ html[lang=ur] .sec h2{font-size:clamp(24px,2.6vw,34px)}
 .ai-live::before{content:"";width:6px;height:6px;border-radius:50%;background:#22c55e;box-shadow:0 0 6px #22c55e}
 .case .ex{display:inline-block;font-size:11px;font-weight:700;color:#92400e;background:#fef3c7;padding:2px 8px;border-radius:999px;margin-bottom:8px}
 .sec .note{display:block;text-align:center;color:#64748b;font-size:12.5px;margin-top:14px}
+.citem .lm{max-width:calc(100% - 64px);padding-inline-end:4px}

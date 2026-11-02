@@ -91,9 +91,9 @@ async function callOpenAI(system, messages) {
 }
 
 async function callGemini(system, messages) {
-  const models = [process.env.GEMINI_MODEL, 'gemini-2.5-flash', 'gemini-3.5-flash', 'gemini-flash-latest', 'gemini-2.5-flash-lite'].filter(Boolean);
+  const models = [process.env.GEMINI_MODEL, 'gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-3.5-flash', 'gemini-flash-latest', 'gemini-2.5-flash'].filter(Boolean);
   let last;
-  for (const model of [...new Set(models)]) {
+  for (const model of models.filter((m, i) => models.indexOf(m) === i || i === models.length - 1)) {
     const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent', {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY },
@@ -103,8 +103,12 @@ async function callGemini(system, messages) {
         generationConfig: { maxOutputTokens: 2048, temperature: 0.6, responseMimeType: 'application/json' }
       })
     });
-    if (r.status === 404 || r.status === 400) { last = new Error('gemini ' + model + ' ' + r.status); continue; }
-    if (!r.ok) throw new Error('gemini ' + r.status + ' ' + (await r.text()).slice(0, 200));
+    if (!r.ok) {
+      // 404/400 = model name not available; 429/500/503 = busy or rate-limited -> try the next model
+      last = new Error('gemini ' + model + ' ' + r.status + ' ' + (await r.text()).slice(0, 160));
+      if ([400, 404, 429, 500, 503].includes(r.status)) { if (r.status !== 404 && r.status !== 400) await new Promise(z => setTimeout(z, 400)); continue; }
+      throw last;
+    }
     const j = await r.json();
     const parts = j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts || [];
     const text = parts.filter(p => !p.thought).map(p => p.text || '').join('');
@@ -123,8 +127,7 @@ async function callGroq(system, messages) {
       headers: { 'content-type': 'application/json', authorization: 'Bearer ' + process.env.GROQ_API_KEY },
       body: JSON.stringify({ model, max_tokens: 1200, temperature: 0.6, messages: [{ role: 'system', content: system }, ...messages] })
     });
-    if (r.status === 404 || r.status === 400) { last = new Error('groq ' + model + ' ' + r.status); continue; }
-    if (!r.ok) throw new Error('groq ' + r.status + ' ' + (await r.text()).slice(0, 200));
+    if (!r.ok) { last = new Error('groq ' + model + ' ' + r.status); if ([400, 404, 429, 500, 503].includes(r.status)) continue; throw last; }
     const j = await r.json();
     const text = j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content;
     if (text) return text;

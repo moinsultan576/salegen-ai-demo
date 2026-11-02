@@ -584,7 +584,7 @@ async function remoteAI(c, text) {
   const messages = c.msgs.filter(m => m.d !== 'sys').slice(-14).map(m => ({ role: m.d === 'in' ? 'user' : 'assistant', content: m.file ? '[PDF proposal sent]' : msgText(m) }));
   const kb = S.kb.map(k => (k.k ? tl('en', k.k + 't') : k.title) + ':\n' + (k.k ? tl('en', k.k + 'd') : k.text)).join('\n\n');
   const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
-  const timer = setTimeout(() => ctl && ctl.abort(), 15000);
+  const timer = setTimeout(() => ctl && ctl.abort(), 22000);
   try {
     const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: ctl ? ctl.signal : undefined,
       body: JSON.stringify({ messages, lang: lg, kb, agent: { name: S.prefs.agName, tone: S.prefs.tone }, lead: { name: l.name, industry: l.ind ? tl('en', 'ind_' + l.ind) : (l.biz || ''), city: tl('en', 'city_' + l.city), stage: l.stage, channel: c.ch.replace(/\d/, '') } }) });
