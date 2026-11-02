@@ -6,7 +6,7 @@ test.use({ viewport: { width: 1440, height: 900 } });
 test.beforeEach(async ({ page }) => {
   await page.route('**/api/chat', r => r.fulfill({ status: 503, body: '{}' })); // use built-in replies
   await page.goto('/#/');
-  await page.evaluate(() => localStorage.clear());
+  await page.evaluate(() => { localStorage.clear(); localStorage.setItem('sg_user', JSON.stringify({ name: 'Test Visitor', email: 'test@example.com' })); });
 });
 
 test('landing page renders in all 3 languages', async ({ page }) => {
@@ -18,9 +18,19 @@ test('landing page renders in all 3 languages', async ({ page }) => {
   await expect(page.locator('html')).toHaveAttribute('lang', 'ur');
 });
 
-test('login opens the CRM dashboard', async ({ page }) => {
-  await page.goto('/#/login');
+test('start-demo form opens the CRM with the visitor name', async ({ page }) => {
+  await page.route(/formsubmit/, r => r.fulfill({ status: 200, contentType: 'application/json', body: '{"success":"true"}' }));
+  await page.evaluate(() => localStorage.clear());
+  await page.goto('/#/app/pipeline');
+  await expect(page).toHaveURL(/#\/login/);
   await page.click('button[type=submit]');
+  await expect(page.locator('#lg-err')).not.toBeEmpty();
+  await page.fill('#lg-name', 'Ahmed Al-Ghamdi');
+  await page.fill('#lg-email', 'ahmed@example.com');
+  await page.click('button[type=submit]');
+  await expect(page).toHaveURL(/#\/app\/pipeline/);
+  await page.goto('/#/app/dashboard');
+  await expect(page.locator('.top .user')).toContainText('Ahmed Al-Ghamdi');
   await expect(page.locator('.kpi')).toHaveCount(5);
   await expect(page.locator('.kcol')).toHaveCount(5);
 });

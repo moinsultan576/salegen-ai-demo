@@ -179,6 +179,10 @@ let S = store.get('sg_state');
 if (!S || S.v !== 3 || NOW() - S.seededAt > 12 * HR) { S = seed(); }
 S.convos.forEach(c => { c.pending = false; });
 const save = () => store.set('sg_state', S);
+const getUser = () => { const u = store.get('sg_user'); return u && u.name && u.email ? u : null; };
+const uName = () => (getUser() || {}).name || 'Demo User';
+const uSub = () => { const u = getUser() || {}; return u.company || t('role'); };
+const uAv = (size) => av(uName(), size);
 save();
 
 /* ---------------- ui state ---------------- */
@@ -313,12 +317,18 @@ function landing() {
 
 /* ================= LOGIN ================= */
 function login() {
+  const u = getUser();
   return `<div class="login"><div class="login-l"><a class="logo" href="#/">${LOGO}SaleGen AI</a><h2>${t('lgLeftT')}</h2><p>${t('lgLeftP')}</p><div style="max-width:420px">${BOT.replace('<svg', '<svg width="180" height="180"')}</div></div>
-  <div class="login-r"><form class="lbox" data-form="login"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px"><a href="#/" style="color:#8fa79b;font-size:13px;display:flex;gap:6px;align-items:center">${ic('chevL', 'flip')}${t('lgBack')}</a>${langSw()}</div>
+  <div class="login-r"><form class="lbox" data-form="login" novalidate><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px"><a href="#/" style="color:#8fa79b;font-size:13px;display:flex;gap:6px;align-items:center">${ic('chevL', 'flip')}${t('lgBack')}</a>${langSw()}</div>
     <h3>${t('lgT')}</h3><p class="m">${t('lgS')}</p>
-    <label>${t('lgEmail')}</label><input class="inp" name="email" value="moin.sultan@salegen.ai" dir="ltr"><label>${t('lgPass')}</label><input class="inp" name="pass" type="password" value="demo1234" dir="ltr">
-    <button class="btn btn-lime" style="width:100%;margin-top:20px;padding:14px" type="submit">${t('lgBtn')} ${ic('arrow', 'flip')}</button>
-    <div class="demo-cred"><b>${t('lgDemo')}:</b> <span dir="ltr">moin.sultan@salegen.ai / demo1234</span><br>${t('lgNote')}</div></form></div></div>`;
+    ${u ? `<a class="btn btn-lime" style="width:100%;padding:14px;margin-bottom:10px" href="${ui.next || '#/app/dashboard'}">${t('lgCont', { name: esc(u.name) })} ${ic('arrow', 'flip')}</a><p class="m" style="text-align:center;margin:6px 0 4px">${t('lgNotYou')}</p>` : ''}
+    <label for="lg-name">${t('lgName')} *</label><input class="inp" id="lg-name" name="name" required autocomplete="name" maxlength="60">
+    <label for="lg-email">${t('lgEmail')} *</label><input class="inp" id="lg-email" name="email" type="email" required autocomplete="email" dir="ltr" maxlength="80">
+    <label for="lg-co">${t('lgCo')}</label><input class="inp" id="lg-co" name="company" autocomplete="organization" maxlength="60">
+    <label for="lg-wa">${t('lgWa')}</label><input class="inp" id="lg-wa" name="phone" type="tel" autocomplete="tel" dir="ltr" maxlength="25" placeholder="+966 5x xxx xxxx">
+    <div class="lg-err" id="lg-err" role="alert"></div>
+    <button class="btn btn-lime" style="width:100%;margin-top:16px;padding:14px" type="submit">${t('lgBtn')} ${ic('arrow', 'flip')}</button>
+    <div class="demo-cred">${ic('shield')} ${t('lgNote2')}</div></form></div></div>`;
 }
 
 /* ================= APP SHELL ================= */
@@ -343,8 +353,8 @@ function shell(page, content) {
       <button class="ibtn" data-act="theme" aria-label="${S.theme === 'light' ? t('themeDark') : t('themeLight')}" title="${S.theme === 'light' ? t('themeDark') : t('themeLight')}">${ic(S.theme === 'light' ? 'moon' : 'sun')}</button>
       <div style="position:relative" data-dd="1"><button class="ibtn" data-act="dd" data-v="notif" aria-label="${t('notifications')}" aria-expanded="${ui.dd === 'notif'}">${ic('bell')}${unread ? `<span class="badge">${unread}</span>` : ''}</button>
         ${ui.dd === 'notif' ? `<div class="dd notif"><div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px"><b>${t('notifications')}</b><button style="width:auto;padding:4px 8px;color:#4ade80;font-size:12.5px" data-act="readall">${t('markRead')}</button></div>${S.notifs.slice(0, 8).map(n => `<div class="n" style="${n.read ? 'opacity:.6' : ''}"><span class="ic ${n.c}">${n.ic === 'wa' ? WA.replace('<svg', '<svg width="16" height="16"') : ic(n.ic)}</span><div>${n.k ? t(n.k) : esc(n.text)}<small>${ago(n.ts)}</small></div></div>`).join('')}</div>` : ''}</div>
-      <div style="position:relative" data-dd="1"><button class="user" data-act="dd" data-v="user" aria-label="${t('profile')}" aria-expanded="${ui.dd === 'user'}"><img class="av" src="assets/avatar.webp" alt="Moin Sultan" width="44" height="44"><span class="ut" style="text-align:start"><b>Moin Sultan</b><small>${t('role')}</small></span>${ic('chev')}</button>
-        ${ui.dd === 'user' ? `<div class="dd"><div style="padding:8px 12px"><span class="demo-pill">${t('demoMode')}</span></div><a href="#/app/settings">${ic('user')}${t('profile')}</a><a href="#/agent/chat">${BOT.replace('<svg', '<svg width="18" height="18"')}${t('agentBox')}</a><div class="sep"></div><a href="#/">${ic('logout', 'flip')}${t('logout')}</a></div>` : ''}</div>
+      <div style="position:relative" data-dd="1"><button class="user" data-act="dd" data-v="user" aria-label="${t('profile')}" aria-expanded="${ui.dd === 'user'}">${uAv()}<span class="ut" style="text-align:start"><b>${esc(uName())}</b><small>${esc(uSub())}</small></span>${ic('chev')}</button>
+        ${ui.dd === 'user' ? `<div class="dd"><div style="padding:8px 12px"><span class="demo-pill">${t('demoMode')}</span></div><a href="#/app/settings">${ic('user')}${t('profile')}</a><a href="#/agent/chat">${BOT.replace('<svg', '<svg width="18" height="18"')}${t('agentBox')}</a><div class="sep"></div><a href="#/" data-act="logout">${ic('logout', 'flip')}${t('logout')}</a></div>` : ''}</div>
     </header>
     <div class="content">${content}</div>
   </div></div>`;
@@ -480,8 +490,8 @@ function settingsPage() {
   const tg = (k, on) => `<button class="toggle ${on ? 'on' : ''}" data-act="pref" data-v="${k}" role="switch" aria-checked="${!!on}" aria-label="${t(k)}"></button>`;
   const integ = [['wa', 'WhatsApp Business', '#22c55e', WA], ['meta', 'Meta Ads', '#2563eb', ic('globe')], ['gmail', 'Gmail', '#ef4444', ic('mail')], ['hub', 'HubSpot', '#f97316', ic('layers')], ['li', 'LinkedIn', '#0a66c2', LI]];
   return head(t('settings'), t('setSub')) + `<div class="grid2"><div style="display:flex;flex-direction:column;gap:16px">
-    <div class="card"><div class="card-h"><h2 style="font-size:18px">${ic('user')}${t('profileT')}</h2></div><div style="display:flex;gap:16px;align-items:center;margin-bottom:16px"><img class="av" src="assets/avatar.webp" alt="Moin Sultan" width="44" height="44"><div><b style="font-size:18px">Moin Sultan</b><div style="color:var(--muted)">${t('role')} · moin.sultan@salegen.ai</div></div></div>
-      <div class="fgrid"><div class="fld"><label>${t('fullname')}</label><input value="Moin Sultan"></div><div class="fld"><label>${t('email')}</label><input value="moin.sultan@salegen.ai" dir="ltr"></div></div><button class="btn btn-lime btn-sm" data-act="savedtoast">${t('saveCh')}</button></div>
+    <div class="card"><div class="card-h"><h2 style="font-size:18px">${ic('user')}${t('profileT')}</h2></div><div style="display:flex;gap:16px;align-items:center;margin-bottom:16px"><span class="av" style="width:64px;height:64px;font-size:20px;background:linear-gradient(135deg,#22c55e,#15803d)">${esc(uName().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase())}</span><div><b style="font-size:18px">${esc(uName())}</b><div style="color:var(--muted)">${esc(uSub())} · <span dir="ltr">${esc((getUser() || {}).email || '')}</span></div></div></div>
+      <div class="fgrid"><div class="fld"><label>${t('fullname')}</label><input id="set-name" value="${esc(uName())}"></div><div class="fld"><label>${t('email')}</label><input id="set-email" value="${esc((getUser() || {}).email || '')}" dir="ltr"></div></div><button class="btn btn-lime btn-sm" data-act="savedtoast">${t('saveCh')}</button></div>
     <div class="card"><div class="card-h"><h2 style="font-size:18px">${ic('globe')}${t('language')} & ${t('appearance')}</h2></div><div class="row"><div class="grow">${t('language')}</div>${langSw()}</div><div class="row"><div class="grow">${t('appearance')}</div><div class="seg"><button class="${S.theme !== 'light' ? 'on' : ''}" data-act="settheme" data-v="dark">${ic('moon')}${t('dark')}</button><button class="${S.theme === 'light' ? 'on' : ''}" data-act="settheme" data-v="light">${ic('sun')}${t('light')}</button></div></div></div>
     <div class="card"><div class="card-h"><h2 style="font-size:18px">${ic('bell')}${t('notifT')}</h2></div>${['n1', 'n2', 'n3'].map(k => `<div class="row"><div class="grow">${t(k)}</div>${tg(k, S.prefs[k])}</div>`).join('')}</div></div>
     <div style="display:flex;flex-direction:column;gap:16px"><div class="card"><div class="card-h"><h2 style="font-size:18px">${ic('link')}${t('integ')}</h2></div><div style="display:flex;flex-direction:column;gap:10px">${integ.map(x => `<div class="integ"><span class="ic" style="background:${x[2]}">${x[3].replace('<svg', '<svg width="20" height="20"')}</span><b style="flex:1">${x[1]}</b>${S.integ[x[0]] ? `<span class="status s-active">${ic('check')} ${t('connected')}</span>` : `<button class="btn btn-soft btn-sm" data-act="integ" data-v="${x[0]}">${t('connect')}</button>`}</div>`).join('')}</div></div>
@@ -678,6 +688,7 @@ function render() {
   document.documentElement.lang = LANG; document.documentElement.dir = t('dir');
   let html;
   if (r[0] === 'login') html = login();
+  else if ((r[0] === 'app' || r[0] === 'agent') && !getUser()) { ui.next = location.hash; location.replace('#/login'); return; }
   else if (r[0] === 'app') {
     const p = r[1] || 'dashboard';
     const pages = { dashboard, leads: leadsPage, pipeline: pipelinePage, deals: dealsPage, email: emailPage, tasks: tasksPage, calendar: calendarPage, reports: reportsPage, settings: settingsPage };
@@ -767,8 +778,10 @@ document.addEventListener('click', e => {
   if (!e.target.closest('.search') && ui.q) { const sr = $('#sres'); if (sr) sr.innerHTML = ''; }
   if (!a) { if (rer) render(); return; }
   const act = a.dataset.act, id = a.dataset.id, v = a.dataset.v;
-  if (act !== 'lead' && act !== 'ovclose' && a.tagName === 'A' && a.getAttribute('href')) return;
+  if (act !== 'lead' && act !== 'ovclose' && act !== 'logout' && a.tagName === 'A' && a.getAttribute('href')) return;
+  if (act === 'logout') e.preventDefault();
   switch (act) {
+    case 'logout': store.del('sg_user'); store.del('sg_state'); S = seed(); save(); location.hash = '#/'; return;
     case 'lang': LANG = v; store.set('sg_lang', v); render(); return;
     case 'scroll': { const el = document.getElementById(a.dataset.to); if (el) el.scrollIntoView({ behavior: 'smooth' }); return; }
     case 'video': videoModal(); return;
@@ -800,7 +813,7 @@ document.addEventListener('click', e => {
     case 'export': toast(t('tExport'), 'download'); setTimeout(() => { try { window.print(); } catch (er) {} }, 600); return;
     case 'pref': S.prefs[v] = !S.prefs[v]; save(); render(); return;
     case 'integ': S.integ[v] = true; save(); toast(t('connected') + ' ✓', 'link'); render(); return;
-    case 'savedtoast': toast(t('tSaved')); return;
+    case 'savedtoast': { const u = getUser(); const n = $('#set-name'), e2 = $('#set-email'); if (u && n && n.value.trim()) { u.name = n.value.trim(); if (e2 && e2.value.trim()) u.email = e2.value.trim(); store.set('sg_user', u); } toast(t('tSaved')); render(); return; }
     case 'saveagent': { const n = $('#agname'), tn = $('#agtone'); if (n) S.prefs.agName = n.value; if (tn) S.prefs.tone = tn.value; save(); toast(t('tSaved')); return; }
     case 'reset': store.del('sg_state'); S = seed(); save(); ui.chat = 'c1'; toast(t('tReset'), 'refresh'); render(); return;
     case 'auto': { const x = S.autos.find(y => y.id === id); x.on = !x.on; save(); render(); return; }
@@ -844,7 +857,19 @@ function sendMsg(text) {
 document.addEventListener('submit', e => {
   const f = e.target, k = f.dataset.form; if (!k) return; e.preventDefault();
   const D = Object.fromEntries(new FormData(f).entries());
-  if (k === 'login') { location.hash = '#/app/dashboard'; return; }
+  if (k === 'login') {
+    const name = (D.name || '').trim(), email = (D.email || '').trim();
+    const err = $('#lg-err');
+    if (name.length < 2 || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { if (err) err.textContent = t('lgErr'); (name.length < 2 ? $('#lg-name') : $('#lg-email')).focus(); return; }
+    const user = { name, email, company: (D.company || '').trim(), phone: (D.phone || '').trim(), ts: NOW() };
+    store.set('sg_user', user);
+    try {
+      fetch('https://formsubmit.co/ajax/' + OWNER.email, { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ _subject: 'New demo visitor — SaleGen AI: ' + name, _template: 'table', _captcha: 'false', name, email, company: user.company || '-', whatsapp: user.phone || '-', language: LANG, opened: ui.next || '#/app/dashboard' }) }).catch(() => {});
+    } catch (er) {}
+    const to = ui.next && ui.next !== '#/login' ? ui.next : '#/app/dashboard'; ui.next = null;
+    location.hash = to; return;
+  }
   if (k === 'send') { sendMsg(D.m); return; }
   if (k === 'contact') {
     const id = 'l' + NOW();
