@@ -28,7 +28,13 @@ test('login opens the CRM dashboard', async ({ page }) => {
 test('drag a lead to Closed updates revenue', async ({ page }) => {
   await page.goto('/#/app/dashboard');
   const before = await page.locator('.kpi .v').nth(4).innerText();
-  await page.dragAndDrop('.kcard[data-id=l1]', '.kbody[data-stage=won]');
+  await page.locator('.kcard[data-id=l1]').scrollIntoViewIfNeeded();
+  const src = await page.locator('.kcard[data-id=l1]').boundingBox();
+  const dst = await page.locator('.kbody[data-stage=won]').boundingBox();
+  await page.mouse.move(src.x + src.width / 2, src.y + 20);
+  await page.mouse.down();
+  await page.mouse.move(dst.x + dst.width / 2, dst.y + 60, { steps: 12 });
+  await page.mouse.up();
   await expect(page.locator('.kbody[data-stage=won] .kcard[data-id=l1]')).toBeVisible();
   await expect(page.locator('.kpi .v').nth(4)).not.toHaveText(before);
 });
