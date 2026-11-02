@@ -74,3 +74,19 @@ test('booking a meeting adds it to the calendar', async ({ page }) => {
   await page.goto('/#/app/calendar');
   await expect(page.locator('.ev.g')).toHaveCount(1);
 });
+
+test('personalize wizard trains the agent on the visitor business', async ({ page }) => {
+  await page.route('**/api/notify', r => r.fulfill({ status: 200, body: '{"ok":true}' }));
+  await page.goto('/#/app/dashboard');
+  await page.click('.pz-ban [data-act=pz]');
+  await page.click('.modal-f [data-act=submit]');
+  await expect(page.locator('#pz-err')).not.toBeEmpty();
+  await page.click('[data-act=pzex]');
+  await page.click('.modal-f [data-act=submit]');
+  await expect(page).toHaveURL(/#\/agent\/chat\/cbiz/);
+  await expect(page.locator('.msgs')).toContainText('Glow Beauty Salon');
+  await page.fill('#compose', 'What are your prices?');
+  await page.press('#compose', 'Enter');
+  await expect(page.locator('.msg.out').last()).toContainText('SAR 80', { timeout: 8000 });
+  await expect(page.locator('.pz-chip.on')).toContainText('Glow Beauty Salon');
+});

@@ -16,12 +16,12 @@ module.exports = async (req, res) => {
 
   let b = req.body; if (typeof b === 'string') { try { b = JSON.parse(b); } catch (e) { b = {}; } }
   b = b || {};
-  const v = { type: b.type === 'contact' ? 'contact' : 'demo', name: clip(b.name, 60), email: clip(b.email, 80), company: clip(b.company, 60), phone: clip(b.phone, 25), message: clip(b.message, 300), lang: clip(b.lang, 5) || 'en', ts: now };
+  const v = { type: ['contact', 'biz'].includes(b.type) ? b.type : 'demo', name: clip(b.name, 60), email: clip(b.email, 80), company: clip(b.company, 60), phone: clip(b.phone, 25), message: clip(b.message, 320), lang: clip(b.lang, 5) || 'en', ts: now };
   if (v.name.length < 2) return res.status(400).json({ ok: false });
 
   await store.log('visitors', v);
 
-  const title = v.type === 'contact' ? '📩 New demo request (contact form)' : '🚀 New demo visitor';
+  const title = v.type === 'contact' ? '📩 New demo request (contact form)' : v.type === 'biz' ? '🎯 Visitor trained the AI on their business' : '🚀 New demo visitor';
   const text = [`*${title} — SaleGen AI*`, `👤 ${v.name}`, v.email && `✉️ ${v.email}`, v.company && `🏢 ${v.company}`, v.phone && `📱 ${v.phone}`, v.message && `💬 ${v.message}`, `🌐 ${v.lang}`].filter(Boolean).join('\n');
   const r = await sendWhatsApp(text);
   return res.status(200).json({ ok: r.ok });

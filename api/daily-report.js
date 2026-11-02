@@ -42,20 +42,20 @@ module.exports = async (req, res) => {
   const visitors = await store.read('visitors', day);
   const chats = await store.read('chats', day);
 
-  const demo = visitors.filter(v => v.type === 'demo'), contact = visitors.filter(v => v.type === 'contact');
+  const demo = visitors.filter(v => v.type === 'demo'), contact = visitors.filter(v => v.type === 'contact'), biz = visitors.filter(v => v.type === 'biz');
   const byVisitor = {};
   for (const c of chats) { const k = (c.v && (c.v.email || c.v.name)) || 'anonymous'; (byVisitor[k] = byVisitor[k] || { v: c.v || {}, msgs: [] }).msgs.push(c); }
   const convs = Object.values(byVisitor);
 
   const lines = [`📊 *SaleGen AI — Daily report (${day})*`, '',
-    `🚀 New demo visitors: *${demo.length}*`, `📩 Contact requests: *${contact.length}*`, `💬 AI chats: *${chats.length}* messages from *${convs.length}* visitor(s)`];
+    `🚀 New demo visitors: *${demo.length}*`, `📩 Contact requests: *${contact.length}*`, `🎯 Trained AI on their own business: *${biz.length}*`, `💬 AI chats: *${chats.length}* messages from *${convs.length}* visitor(s)`];
   if (visitors.length) {
     lines.push('', '*Visitors:*');
-    visitors.slice(0, 15).forEach(v => lines.push(`• ${v.name}${v.company ? ' (' + v.company + ')' : ''} — ${v.email || '-'}${v.phone ? ' — ' + v.phone : ''}${v.type === 'contact' ? ' 📩' : ''}`));
+    visitors.slice(0, 15).forEach(v => lines.push(`• ${v.name}${v.company ? ' (' + v.company + ')' : ''} — ${v.email || '-'}${v.phone ? ' — ' + v.phone : ''}${v.type === 'contact' ? ' 📩' : ''}${v.type === 'biz' ? ' 🎯 ' + (v.message || '').slice(0, 120) : ''}`));
     if (visitors.length > 15) lines.push(`… +${visitors.length - 15} more`);
   }
   if (convs.length) {
-    const transcript = convs.map(c => `VISITOR: ${c.v.name || 'unknown'} (${c.v.company || ''}, ${c.v.email || ''})\n` + c.msgs.map(m => `- [${m.lead || ''}] customer: ${m.q}\n  AI: ${m.a || '(no reply)'}${m.action && m.action !== 'none' ? ' [' + m.action + ']' : ''}`).join('\n')).join('\n\n');
+    const transcript = convs.map(c => `VISITOR: ${c.v.name || 'unknown'} (${c.v.company || ''}, ${c.v.email || ''})\n` + c.msgs.map(m => `- [${m.biz ? 'their business: ' + m.biz : m.lead || ''}] customer: ${m.q}\n  AI: ${m.a || '(no reply)'}${m.action && m.action !== 'none' ? ' [' + m.action + ']' : ''}`).join('\n')).join('\n\n');
     const sum = await summarize(transcript);
     lines.push('', '*Chats:*');
     convs.slice(0, 10).forEach(c => { const last = c.msgs[c.msgs.length - 1]; lines.push(`• ${c.v.name || 'Visitor'}: ${c.msgs.length} msg — last: "${String(last.q).slice(0, 70)}"`); });

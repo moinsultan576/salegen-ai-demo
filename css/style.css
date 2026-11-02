@@ -615,3 +615,21 @@ html[lang=ur] .sec h2{font-size:clamp(24px,2.6vw,34px)}
 .lbox .demo-cred{display:flex;gap:8px;align-items:flex-start;line-height:1.5}
 .lbox .demo-cred svg{flex-shrink:0;margin-top:2px;color:#86efac}
 .lbox .inp::placeholder{color:#5f7a6d}
+/* personalize wizard */
+.pz-chip{display:inline-flex;align-items:center;gap:7px;border:1px solid #bfe8cc;background:#ecfbf1;color:#127a39;font:600 13px/1 inherit;font-family:inherit;padding:8px 12px;border-radius:999px;cursor:pointer;max-width:320px}
+.pz-chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pz-chip svg{width:15px;height:15px;flex:none}
+.pz-chip:not(.on){background:linear-gradient(135deg,#c3f57f,#5fd36b);border-color:transparent;color:#062312;box-shadow:0 4px 14px rgba(95,211,107,.35)}
+.pz-chip:hover{filter:brightness(1.04)}
+.pz-ban{display:flex;align-items:center;gap:14px;margin:0 0 18px;padding:14px 16px;border-radius:16px;border:1px solid rgba(110,231,150,.35);background:linear-gradient(120deg,rgba(61,220,126,.16),rgba(181,245,125,.06))}
+.pz-ban>div{flex:1;min-width:0}.pz-ban b{display:block;font-size:15px}.pz-ban small{display:block;color:var(--muted);font-size:13px;margin-top:3px}
+.pz-ban .pz-i{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(135deg,#c3f57f,#5fd36b);color:#062312;flex:none}
+.pz-ban .btn{flex:none;white-space:nowrap}
+@media (max-width:640px){.pz-ban{flex-wrap:wrap}.pz-ban .btn{flex:1}.pz-chip span{max-width:140px}}
+.pz-s{color:#5b6e64;margin:0 0 14px;font-size:14px;line-height:1.55}
+.modal textarea{resize:vertical}
+.pz-kb{border:1px solid #bfe8cc}.pz-kb p{white-space:pre-line}.pz-kb .btn{margin-top:10px}
+.modal-h{position:sticky;top:0;z-index:2;background:inherit}
+.modal.wide .modal-f,.modal .modal-f{position:sticky;bottom:0;z-index:2;background:inherit}
+.chat-h>div{min-width:0}.chat-h small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chat-h b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:520px){.chat-h{gap:8px;padding:12px}.chat-h .tagp.t-hi,.chat-h .tagp.t-lo{display:none}}

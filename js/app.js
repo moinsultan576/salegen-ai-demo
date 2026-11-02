@@ -179,10 +179,24 @@ let S = store.get('sg_state');
 if (!S || S.v !== 3 || NOW() - S.seededAt > 12 * HR) { S = seed(); }
 S.convos.forEach(c => { c.pending = false; });
 const save = () => store.set('sg_state', S);
+/* ---- Personalized demo: visitor's own business ---- */
+const BTYPES = ['re', 'food', 'clinic', 'beauty', 'shop', 'auto', 'edu', 'other'];
+const getBiz = () => { const b = store.get('sg_biz'); return b && b.name && b.services ? b : null; };
+function ensureBizConvo(fresh) {
+  const b = getBiz(); if (!b) return null;
+  let l = S.leads.find(x => x.id === 'lbiz');
+  if (!l) { l = { id: 'lbiz', name: uName(), ind: null, biz: b.name, city: 'jeddah', stage: 'new', ts: NOW(), src: 'whatsapp', camp: 'wa', value: 0, score: 40, q: false, email: (getUser() || {}).email || '', phone: (getUser() || {}).phone || '', created: NOW() }; S.leads.push(l); }
+  l.name = uName(); l.biz = b.name;
+  let c = S.convos.find(x => x.id === 'cbiz');
+  if (!c) { c = { id: 'cbiz', lead: 'lbiz', ch: 'whatsapp', biz: 1, ts: NOW() + 1, unread: false, msgs: [] }; S.convos.push(c); fresh = true; }
+  if (fresh) { c.msgs = [{ d: 'sys', k: 'pzSys', v: { b: b.name }, ts: NOW() }, { d: 'out', text: t('pzHi', { b: b.name }), ai: 1, ts: NOW() }]; c.ts = NOW() + 1; }
+  return c;
+}
 const waAlert = d => { if (!location.protocol.startsWith('http')) return; try { fetch('/api/notify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign({ lang: LANG }, d)) }).catch(() => {}); } catch (e) {} };
 const getUser = () => { const u = store.get('sg_user'); return u && u.name && u.email ? u : null; };
 const uName = () => (getUser() || {}).name || 'Demo User';
 const uSub = () => { const u = getUser() || {}; return u.company || t('role'); };
+ensureBizConvo();
 const uAv = (size) => av(uName(), size);
 save();
 
@@ -406,7 +420,7 @@ function dashboard() {
   const rs = revSeries();
   const up = S.meetings.filter(x => x.ts > NOW() - HR).sort((a, b) => a.ts - b.ts).slice(0, 4);
   const act = S.convos.slice().sort((a, b) => b.ts - a.ts).slice(0, 4);
-  return head(t('dashboard'), t('dashSub'), `<select class="sel" data-ch="range">${[['oct', 'thisMonth'], ['sep', 'lastMonth'], ['q', 'last90']].map(o => `<option value="${o[0]}" ${ui.range === o[0] ? 'selected' : ''}>${t(o[1])}</option>`).join('')}</select>`) +
+  return head(t('dashboard'), t('dashSub'), `<select class="sel" data-ch="range">${[['oct', 'thisMonth'], ['sep', 'lastMonth'], ['q', 'last90']].map(o => `<option value="${o[0]}" ${ui.range === o[0] ? 'selected' : ''}>${t(o[1])}</option>`).join('')}</select>`) + pzBanner() +
   `<div class="kpis">${K.map((k, i) => `<div class="kpi"><span class="ki ${k[1]}">${ic(k[2])}</span><div><div class="l">${t(k[0])}</div><div class="v">${i === 4 ? (LANG === 'en' ? `<small class="cur">SAR</small> ${fmt(m.v[i])}` : `${fmt(m.v[i])} <small class="cur">${LANG === 'ar' ? 'ر.س' : 'ریال'}</small>`) : fmt(m.v[i])}</div><div class="d">${ic('up')}+${m.d[i]}%</div></div></div>`).join('')}</div>
   <div class="card"><div class="card-h"><h2>${ic('funnel')}${t('salesPipeline')}<small style="font-size:13px;font-weight:500;color:var(--muted);margin-inline-start:6px">${(() => { const act = STAGES.reduce((a, st) => a + colCount(st), 0); return t('archived', { a: fmt(act), b: fmt(Math.max(0, m.v[0] - act)) }); })()}</small></h2>
     <select class="sel" data-ch="camp"><option value="all">${t('allCampaigns')}</option>${['meta', 'wa', 'web', 'li'].map(c => `<option value="${c}" ${ui.camp === c ? 'selected' : ''}>${t('cmp_' + c)}</option>`).join('')}</select>
@@ -499,13 +513,42 @@ function settingsPage() {
     <div class="card"><div class="card-h"><h2 style="font-size:18px">${ic('refresh')}${t('resetT')}</h2></div><p style="color:var(--muted);margin-bottom:14px">${t('resetD')}</p><button class="btn btn-danger" data-act="reset">${ic('refresh')}${t('resetB')}</button></div></div></div>`;
 }
 
+/* ================= PERSONALIZE WIZARD ================= */
+function pzChip() {
+  const b = getBiz();
+  return b ? `<button class="pz-chip on" data-act="pz" title="${t('pzT')}">${ic('spark')}<span>${t('pzOn', { b: esc(b.name) })}</span>${ic('edit')}</button>`
+    : `<button class="pz-chip" data-act="pz">${ic('spark')}<span>${t('pz')}</span></button>`;
+}
+function pzBanner() {
+  const b = getBiz();
+  if (b) return `<div class="pz-ban done"><span class="pz-i">${ic('spark')}</span><div><b>${t('pzOn', { b: esc(b.name) })}</b><small>${t('pzBanD')}</small></div><a class="btn btn-lime" href="#/agent/chat/cbiz">${t('ag_chat')} ${ic('arrow', 'flip')}</a><button class="btn btn-soft" data-act="pz">${ic('edit')}</button></div>`;
+  return `<div class="pz-ban"><span class="pz-i">${ic('spark')}</span><div><b>${t('pzBanT')}</b><small>${t('pzBanD')}</small></div><button class="btn btn-lime" data-act="pz">${t('pz')} ${ic('arrow', 'flip')}</button></div>`;
+}
+function pzKbCard() {
+  const b = getBiz(); if (!b) return '';
+  return `<div class="card pz-kb"><h4><span style="width:34px;height:34px;border-radius:9px;background:#e3f7e8;color:#16803d;display:grid;place-items:center">${ic('spark')}</span>${t('pzKb')}: ${esc(b.name)}</h4><p>${esc(t('bt_' + b.type))}${b.city ? ' · ' + esc(b.city) : ''}\n\n${esc(b.services)}${b.hours ? '\n\n🕒 ' + esc(b.hours) : ''}${b.more ? '\n\n📍 ' + esc(b.more) : ''}</p><button class="btn btn-soft" data-act="pz">${ic('edit')}${t('edit')}</button></div>`;
+}
+function pzModal() {
+  const b = getBiz() || {};
+  const u = getUser() || {};
+  modal(`${ic('spark')} ${t('pzT')}`, `<p class="pz-s">${t('pzS')}</p><form id="mf" data-form="biz" novalidate>
+    <div class="fgrid"><div class="fld"><label for="pz-name">${t('pzName')} *</label><input id="pz-name" name="name" maxlength="60" required value="${esc(b.name || u.company || '')}"></div>
+    <div class="fld"><label for="pz-type">${t('pzType')}</label><select id="pz-type" name="type">${BTYPES.map(k => `<option value="${k}" ${(b.type || 'other') === k ? 'selected' : ''}>${t('bt_' + k)}</option>`).join('')}</select></div></div>
+    <div class="fld"><label for="pz-city">${t('pzCity')}</label><input id="pz-city" name="city" maxlength="40" value="${esc(b.city || '')}"></div>
+    <div class="fld"><label for="pz-svc">${t('pzSvc')} *</label><textarea id="pz-svc" name="services" rows="5" maxlength="1200" placeholder="${esc(t('pzSvcPh'))}">${esc(b.services || '')}</textarea></div>
+    <div class="fld"><label for="pz-hours">${t('pzHours')}</label><input id="pz-hours" name="hours" maxlength="80" placeholder="${esc(t('pzHoursPh'))}" value="${esc(b.hours || '')}"></div>
+    <div class="fld"><label for="pz-more">${t('pzMore')}</label><textarea id="pz-more" name="more" rows="2" maxlength="600" placeholder="${esc(t('pzMorePh'))}">${esc(b.more || '')}</textarea></div>
+    <div class="lg-err" id="pz-err" role="alert"></div></form>`,
+    `<button class="btn btn-soft" data-act="pzex">${t('pzEx')}</button>${getBiz() ? `<button class="btn btn-soft" data-act="pzoff">${t('pzReset')}</button>` : ''}<button class="btn btn-green" data-act="submit">${ic('spark')}${t('pzGo')}</button>`, true);
+}
+
 /* ================= AGENT CONSOLE ================= */
 const ANAV = [['chat', 'chat', 'ag_chat'], ['history', 'history', 'ag_hist'], ['kb', 'book', 'ag_kb'], ['automations', 'gear', 'ag_auto'], ['settings', 'gear', 'ag_set']];
 function agentShell(page, content) {
   return `<div class="agent"><aside class="aside"><div class="ab">${BOT}<span>${t('agentBox')}</span></div>
     ${ANAV.map(a => `<a href="#/agent/${a[0]}" class="${page === a[0] ? 'on' : ''}">${a[0] === 'automations' ? ic('spark') : ic(a[1])}${t(a[2])}</a>`).join('')}
     <a class="back" href="#/app/dashboard">${ic('chevL', 'flip')}${t('ag_back')}</a></aside>
-    <div class="amain"><div class="atop">${langSw()}<a href="#/app/dashboard" style="display:flex;gap:8px;align-items:center;font-weight:600;font-size:14px">${LOGO.replace('<svg', '<svg width="26" height="26"')}SaleGen AI</a></div>${content}</div></div>`;
+    <div class="amain"><div class="atop">${pzChip()}${langSw()}<a href="#/app/dashboard" style="display:flex;gap:8px;align-items:center;font-weight:600;font-size:14px">${LOGO.replace('<svg', '<svg width="26" height="26"')}SaleGen AI</a></div>${content}</div></div>`;
 }
 function chIcon(c) {
   const l = lead(c.lead);
@@ -535,7 +578,7 @@ function chatPage(cid) {
     <div class="clist" id="clist">${clistHtml()}</div></div>
   <div class="cpanel chp"><div class="chat-h"><button class="ibtn ld-tg" data-act="ldtoggle" aria-label="${t('leadDetails')}" style="width:36px;height:36px;color:#16803d;background:#e3f7e8">${ic('user')}</button>${av(l)}<div style="flex:1;min-width:0"><b>${esc(nm(l))}</b><small>${esc(ind(l))} • ${city(l)}</small></div><span class="tagp ${intent[0]}">${t(intent[1])}</span>${qual ? `<span class="tagp t-q">${t('qualified')}</span>` : ''}<button class="ibtn" data-act="lead" data-id="${l.id}" aria-label="${t('leadDetails')}" style="width:34px;height:34px">${ic('dots')}</button></div>
     <div class="msgs" id="msgs">${msgs}${ui.typing === c.id ? '<div class="typing"><i></i><i></i><i></i></div>' : ''}</div>
-    <div class="sugg">${['sug1', 'sug2', 'sug3', 'sug4'].map(k => `<button data-act="sugg" data-v="${k}">${t(k)}</button>`).join('')}</div>
+    <div class="sugg">${(c.biz ? ['bsug1', 'bsug2', 'bsug3', 'bsug4'] : ['sug1', 'sug2', 'sug3', 'sug4']).map(k => `<button data-act="sugg" data-v="${k}">${t(k)}</button>`).join('')}</div>
     <div class="sim"><button class="${ui.sim === 'customer' ? 'on' : ''}" data-act="sim" data-v="customer">${ic('user')} ${t('simC')}</button><button class="${ui.sim === 'agent' ? 'on' : ''}" data-act="sim" data-v="agent">${ic('msg')} ${t('simA')}</button><span>${ui.sim === 'customer' ? t('simHint') : t('simHintA')}</span></div>
     <form class="compose" data-form="send"><div class="box"><span style="width:20px;height:20px;border-radius:50%;border:2px solid #c5d2cb"></span><input id="compose" name="m" aria-label="${t('typeMsg')}" placeholder="${t('typeMsg')}" autocomplete="off"><button type="button" class="circ" data-act="attach" aria-label="Attach">${ic('clip')}</button><button type="button" class="circ" data-act="emoji" aria-label="Emoji">${ic('smile')}</button></div><button class="send" type="submit" aria-label="Send">${ic('send', 'flip')}</button></form></div>
   ${ui.ld ? '<div class="ld-ov" data-act="ldtoggle"></div>' : ''}<div class="cpanel ldp ${ui.ld ? 'open' : ''}"><div class="ld"><div class="ld-h"><b>${t('leadDetails')}</b><button class="ibtn ld-x" data-act="ldtoggle" aria-label="${t('close')}" style="width:32px;height:32px">${ic('x')}</button><button class="edit" data-act="lead" data-id="${l.id}">${ic('edit')}${t('edit')}</button></div>
@@ -549,7 +592,7 @@ function historyPage() {
   return agentShell('history', `<div class="apage">${head(t('ag_hist'), t('histSub'))}<div class="card tw"><table class="tbl"><thead><tr><th>${t('colLead')}</th><th>${t('colChannel')}</th><th>${t('colMsgs')}</th><th>${t('colScore')}</th><th>${t('colStage')}</th><th>${t('colLast')}</th></tr></thead><tbody>${rows}</tbody></table></div></div>`);
 }
 function kbPage() {
-  return agentShell('kb', `<div class="apage">${head(t('ag_kb'), t('kbSub'), `<button class="btn btn-green" data-act="newkb">${ic('plus')}${t('kbAdd')}</button>`)}<div class="kb">${S.kb.map(k => `<div class="card"><h4><span style="width:34px;height:34px;border-radius:9px;background:#e3f7e8;color:#16803d;display:grid;place-items:center">${ic(k.ic || 'book')}</span>${k.k ? t(k.k + 't') : esc(k.title)}</h4><p>${k.k ? t(k.k + 'd') : esc(k.text)}</p></div>`).join('')}</div></div>`);
+  return agentShell('kb', `<div class="apage">${head(t('ag_kb'), t('kbSub'), `<button class="btn btn-green" data-act="newkb">${ic('plus')}${t('kbAdd')}</button>`)}<div class="kb">${pzKbCard()}${S.kb.map(k => `<div class="card"><h4><span style="width:34px;height:34px;border-radius:9px;background:#e3f7e8;color:#16803d;display:grid;place-items:center">${ic(k.ic || 'book')}</span>${k.k ? t(k.k + 't') : esc(k.title)}</h4><p>${k.k ? t(k.k + 'd') : esc(k.text)}</p></div>`).join('')}</div></div>`);
 }
 function autoPage() {
   return agentShell('automations', `<div class="apage">${head(t('ag_auto'), t('autoSub'))}<div class="kb">${S.autos.map(a => `<div class="card" style="display:flex;gap:14px;align-items:flex-start"><span style="width:44px;height:44px;border-radius:12px;background:${a.on ? 'linear-gradient(135deg,#34d27a,#16a34a)' : '#cbd5e1'};color:#fff;display:grid;place-items:center;flex-shrink:0">${a.ic === 'wa' ? WA.replace('<svg', '<svg width="22" height="22"') : ic(a.ic)}</span><div style="flex:1"><h4 style="margin-bottom:4px">${t(a.k + 't')}</h4><p>${t(a.k + 'd')}</p><div class="flow"><span>${t('fl_trig')}</span>${ic('arrow', 'flip')}<span>${t('fl_act')}</span><span style="margin-inline-start:auto;background:none;border:0;color:#16803d;font-weight:600">${t('runs', { n: fmt(a.runs) })}</span></div></div><button class="toggle ${a.on ? 'on' : ''}" data-act="auto" data-id="${a.id}" role="switch" aria-checked="${a.on}" aria-label="${t(a.k + 't')}"></button></div>`).join('')}</div></div>`);
@@ -568,6 +611,8 @@ function agentSettings() {
 function detectLang(s) { if (/[؀-ۿ]/.test(s)) return /[ٹڈڑںےۓہکگیھ]/.test(s) ? 'ur' : 'ar'; return /[a-z]/i.test(s) ? 'en' : LANG; }
 function tl(lang, k, v) { const o = LANG; LANG = lang; const s = t(k, v); LANG = o; return s; }
 function aiReply(c, text) {
+  const B = c.biz && getBiz();
+  if (B) return bizReply(c, text, B);
   const l = lead(c.lead), lg = detectLang(text), s = text.toLowerCase();
   const name = (l.names && l.names[lg]) || l.name.split(' ')[0];
   const has = re => re.test(s);
@@ -588,6 +633,18 @@ function aiReply(c, text) {
   if (effect === 'prop') { v.name = (l.names && l.names[lg]) || l.name; }
   return { text: tl(lg, k, v), lang: lg, effect };
 }
+function bizReply(c, text, B) {
+  const l = lead(c.lead), lg = detectLang(text), s = text.toLowerCase(), has = re => re.test(s);
+  const v = { b: B.name, p: B.services, h: B.hours, m: B.more };
+  let k = 'bz_def', effect = null;
+  if (has(/(book|appointment|reserve|reservation|tomorrow|visit|call|meeting|موعد|احجز|حجز|بكرة|غدا|غداً|زيارة|مكالمة|اپائنٹمنٹ|بک|کل|وزٹ|کال|میٹنگ)/)) { k = 'bz_meet'; effect = 'meet'; }
+  else if (has(/(price|pricing|cost|how much|rate|fee|service|menu|package|سعر|أسعار|اسعار|كم|خدمات|الخدمات|باقة|قائمة|قیمت|قیمتیں|ریٹ|سروس|پیکج|فیس)/)) k = 'bz_price';
+  else if (has(/(hour|timing|time|open|close|when|دوام|ساعات|أوقات|اوقات|متى|مفتوح|ٹائم|وقت|اوقات|کب|کھل)/)) k = B.hours ? 'bz_hours' : 'bz_def';
+  else if (has(/(where|location|address|branch|map|وين|أين|موقع|العنوان|فرع|کہاں|لوکیشن|پتہ|ایڈریس)/)) k = B.more ? 'bz_where' : 'bz_def';
+  else if (has(/^(hi|hello|hey|salam|assalam|aoa|السلام|مرحبا|اهلا|أهلا|هلا|ہیلو|سلام)/)) k = 'pzHi';
+  if (effect === 'meet') { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(11, 0, 0, 0); v.d = fdateL(d.getTime(), lg) + ' · ' + ftimeL(d.getTime(), lg); bookMeeting(l, d.getTime(), B.name + ' – ' + l.name, true); }
+  return { text: tl(lg, k, v), lang: lg, effect };
+}
 const fdateL = (ts, lg) => { const o = LANG; LANG = lg; const s = fdate(ts); LANG = o; return s; };
 const ftimeL = (ts, lg) => { const o = LANG; LANG = lg; const s = ftime(ts); LANG = o; return s; };
 let aiRemote = location.protocol.startsWith('http');
@@ -600,7 +657,7 @@ async function remoteAI(c, text) {
   const timer = setTimeout(() => ctl && ctl.abort(), 22000);
   try {
     const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: ctl ? ctl.signal : undefined,
-      body: JSON.stringify({ messages, lang: lg, kb, visitor: (() => { const u = getUser() || {}; return { name: u.name, email: u.email, company: u.company }; })(), agent: { name: S.prefs.agName, tone: S.prefs.tone }, lead: { name: l.name, industry: l.ind ? tl('en', 'ind_' + l.ind) : (l.biz || ''), city: tl('en', 'city_' + l.city), stage: l.stage, channel: c.ch.replace(/\d/, '') } }) });
+      body: JSON.stringify({ messages, lang: lg, kb, biz: c.biz ? getBiz() : null, visitor: (() => { const u = getUser() || {}; return { name: u.name, email: u.email, company: u.company }; })(), agent: { name: S.prefs.agName, tone: S.prefs.tone }, lead: { name: l.name, industry: l.ind ? tl('en', 'ind_' + l.ind) : (l.biz || ''), city: tl('en', 'city_' + l.city), stage: l.stage, channel: c.ch.replace(/\d/, '') } }) });
     if (res.status === 503 || res.status === 404 || res.status === 405) { aiRemote = false; return null; }
     if (!res.ok) return null;
     const j = await res.json();
@@ -782,11 +839,15 @@ document.addEventListener('click', e => {
   if (act !== 'lead' && act !== 'ovclose' && act !== 'logout' && a.tagName === 'A' && a.getAttribute('href')) return;
   if (act === 'logout') e.preventDefault();
   switch (act) {
-    case 'logout': store.del('sg_user'); store.del('sg_state'); S = seed(); save(); location.hash = '#/'; return;
+    case 'logout': store.del('sg_user'); store.del('sg_state'); store.del('sg_biz'); S = seed(); save(); location.hash = '#/'; return;
     case 'lang': LANG = v; store.set('sg_lang', v); render(); return;
     case 'scroll': { const el = document.getElementById(a.dataset.to); if (el) el.scrollIntoView({ behavior: 'smooth' }); return; }
     case 'video': videoModal(); return;
     case 'close': closeModal(); return;
+    case 'pz': pzModal(); return;
+    case 'pzex': { const f = $('#mf'); if (!f) return; const set = (n, v) => { if (f.elements[n]) f.elements[n].value = v; };
+      set('name', t('exN')); set('type', 'beauty'); set('city', t('exC')); set('services', t('exS')); set('hours', t('exH')); set('more', t('exM')); return; }
+    case 'pzoff': { store.del('sg_biz'); S.convos = S.convos.filter(x => x.id !== 'cbiz'); S.leads = S.leads.filter(x => x.id !== 'lbiz'); if (ui.chat === 'cbiz') ui.chat = 'c1'; save(); closeModal(); toast(t('tSaved')); if (location.hash.includes('cbiz')) location.hash = '#/agent/chat/c1'; else render(); return; }
     case 'ovclose': if (e.target === a) closeModal(); return;
     case 'side': ui.side = !ui.side; render(); return;
     case 'dd': e.stopPropagation(); ui.dd = ui.dd === v ? null : v; ui.kmenu = null; render(); return;
@@ -816,7 +877,7 @@ document.addEventListener('click', e => {
     case 'integ': S.integ[v] = true; save(); toast(t('connected') + ' ✓', 'link'); render(); return;
     case 'savedtoast': { const u = getUser(); const n = $('#set-name'), e2 = $('#set-email'); if (u && n && n.value.trim()) { u.name = n.value.trim(); if (e2 && e2.value.trim()) u.email = e2.value.trim(); store.set('sg_user', u); } toast(t('tSaved')); render(); return; }
     case 'saveagent': { const n = $('#agname'), tn = $('#agtone'); if (n) S.prefs.agName = n.value; if (tn) S.prefs.tone = tn.value; save(); toast(t('tSaved')); return; }
-    case 'reset': store.del('sg_state'); S = seed(); save(); ui.chat = 'c1'; toast(t('tReset'), 'refresh'); render(); return;
+    case 'reset': store.del('sg_state'); S = seed(); ensureBizConvo(); save(); ui.chat = 'c1'; toast(t('tReset'), 'refresh'); render(); return;
     case 'auto': { const x = S.autos.find(y => y.id === id); x.on = !x.on; save(); render(); return; }
     case 'newkb': modal(t('kbAdd'), `<form id="mf" data-form="kb"><div class="fld"><label>${t('kbTitle')}</label><input name="title" required></div><div class="fld"><label>${t('kbContent')}</label><textarea name="text" rows="5"></textarea></div></form>`, `<button class="btn btn-soft" data-act="close">${t('cancel')}</button><button class="btn btn-green" data-act="submit">${t('save')}</button>`); return;
     case 'conv': ui.chat = id; ui.side = false; ui.ld = false; if (a.dataset.go || !location.hash.startsWith('#/agent/chat')) { location.hash = '#/agent/chat/' + id; } else { try { history.replaceState(null, '', '#/agent/chat/' + id); } catch (er) {} render(); } return;
@@ -873,6 +934,18 @@ document.addEventListener('submit', e => {
     location.hash = to; return;
   }
   if (k === 'send') { sendMsg(D.m); return; }
+  if (k === 'biz') {
+    const b = { name: (D.name || '').trim(), type: BTYPES.includes(D.type) ? D.type : 'other', city: (D.city || '').trim(), services: (D.services || '').trim(), hours: (D.hours || '').trim(), more: (D.more || '').trim(), ts: NOW() };
+    if (b.name.length < 2 || b.services.length < 3) { const er = $('#pz-err'); if (er) er.textContent = t('pzErr'); (b.name.length < 2 ? $('#pz-name') : $('#pz-svc')).focus(); return; }
+    const prev = getBiz();
+    store.set('sg_biz', b);
+    const changed = !prev || prev.name !== b.name || prev.services !== b.services || prev.hours !== b.hours || prev.more !== b.more;
+    ensureBizConvo(changed); ui.chat = 'cbiz'; ui.sim = 'customer'; save(); closeModal();
+    if (changed) { const u = getUser() || {}; waAlert({ type: 'biz', name: u.name || 'Visitor', email: u.email, phone: u.phone, company: b.name, message: t('bt_' + b.type) + (b.city ? ', ' + b.city : '') + ' | ' + b.services.replace(/\n+/g, ' · ').slice(0, 220) }); }
+    toast(t('pzTst', { b: esc(b.name) }), 'spark');
+    if (location.hash === '#/agent/chat/cbiz') render(); else location.hash = '#/agent/chat/cbiz';
+    return;
+  }
   if (k === 'contact') {
     const id = 'l' + NOW();
     S.leads.push({ id, name: D.name, ind: null, biz: D.co || t('src_website'), city: 'riyadh', stage: 'new', ts: NOW(), src: 'website', camp: 'web', value: 10000, score: 64, q: false, email: D.email, phone: D.phone, created: NOW() });

@@ -67,3 +67,6 @@ Needs (one time):
 2. `CALLMEBOT_APIKEY` set (see WhatsApp alerts above).
 3. Optional: add `CRON_SECRET` (any long random text) to run the report manually: `/api/daily-report?key=YOUR_SECRET&dry=1` shows a preview without sending.
 Chats are kept for 8 days, then deleted automatically. Visitors are told on the demo form that their details and demo chats are shared with you.
+
+## Personalize your demo
+Visitors can click **Personalize demo** (dashboard banner or the AI Agent top bar), enter their business name, type, services & prices, hours and location. A test WhatsApp chat (`#/agent/chat/cbiz`) opens where the AI agent answers as *their* business (Gemini/Groq with a business-specific prompt; built-in replies as fallback). The owner gets a 🎯 WhatsApp alert and it is counted in the daily report.
