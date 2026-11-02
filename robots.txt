@@ -1,2 +1,3 @@
 User-agent: *
 Allow: /
+Sitemap: https://salegen-ai-demo.vercel.app/sitemap.xml
