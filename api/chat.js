@@ -91,9 +91,9 @@ async function callOpenAI(system, messages) {
 }
 
 async function callGemini(system, messages) {
-  const models = [process.env.GEMINI_MODEL, 'gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-3.5-flash', 'gemini-flash-latest', 'gemini-2.5-flash'].filter(Boolean);
+  const models = [...new Set([process.env.GEMINI_MODEL, 'gemini-3.5-flash', 'gemini-flash-latest', 'gemini-3-flash-preview', 'gemini-2.5-flash-lite'].filter(Boolean))];
   let last;
-  for (const model of models.filter((m, i) => models.indexOf(m) === i || i === models.length - 1)) {
+  for (const model of models) {
     const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent', {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY },
