@@ -582,3 +582,17 @@ html[lang=ur] .sec h2{font-size:clamp(24px,2.6vw,34px)}
 .case .ex{display:inline-block;font-size:11px;font-weight:700;color:#92400e;background:#fef3c7;padding:2px 8px;border-radius:999px;margin-bottom:8px}
 .sec .note{display:block;text-align:center;color:#64748b;font-size:12.5px;margin-top:14px}
 .citem .lm{max-width:calc(100% - 64px);padding-inline-end:4px}
+
+.plan a.fl{display:flex;gap:9px;align-items:flex-start;width:100%;border-radius:8px;padding:2px 4px;margin:-2px -4px;transition:.15s}
+.plan a.fl:hover{background:rgba(34,197,94,.1)}
+.plan a.fl span{flex:1}
+.plan a.fl em{font-style:normal;font-size:11px;font-weight:700;color:#16a34a;opacity:0;white-space:nowrap;transition:.15s}
+.plan.pop a.fl em{color:#86efac}
+.plan a.fl:hover em,.plan a.fl:focus-visible em{opacity:1}
+@media (hover:none){.plan a.fl em{opacity:.85}}
+.stat b{white-space:nowrap}
+.plan a.fl em{display:none;opacity:1}
+.plan a.fl:hover em,.plan a.fl:focus-visible em{display:inline}
+.plan a.fl:hover span{text-decoration:underline;text-underline-offset:3px}
+@media (hover:none){.plan a.fl em{display:none}.plan a.fl span{text-decoration:underline dotted;text-underline-offset:3px}}
+.stat span{white-space:nowrap}
