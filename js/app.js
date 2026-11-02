@@ -851,6 +851,8 @@ document.addEventListener('submit', e => {
     notify('tLive', { src: t('src_website'), name: D.name }, 'users', 'g-green'); save();
     const btn = f.querySelector('button[type=submit]'); if (btn) btn.disabled = true;
     const waText = `${t('ctWaIntro')}\n${t('ctName')}: ${D.name}\n${t('ctCo')}: ${D.co || '-'}\n${t('ctPhone')}: ${D.phone}\n${t('ctEmail')}: ${D.email || '-'}\n${D.msg || ''}`;
+    let finished = false;
+    const fin = ok => { if (finished) return; finished = true; done(ok); };
     const done = ok => {
       if (btn) btn.disabled = false; f.reset();
       modal(t('ctThanksT'), `<p style="margin-bottom:16px;line-height:1.6">${ok ? t('ctThanksMail') : t('ctThanksNoMail')}</p><a class="btn btn-green" style="width:100%" href="https://wa.me/${OWNER.wa}?text=${encodeURIComponent(waText)}" target="_blank" rel="noopener">${WA.replace('<svg', '<svg width="20" height="20"')}${t('ctWa')}</a>`, `<button class="btn btn-soft" data-act="close">${t('close')}</button>`);
@@ -858,7 +860,8 @@ document.addEventListener('submit', e => {
     try {
       fetch('https://formsubmit.co/ajax/' + OWNER.email, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify({ _subject: 'New demo request — SaleGen AI portfolio', _template: 'table', _captcha: 'false', name: D.name, company: D.co, phone: D.phone, email: D.email, message: D.msg, language: LANG }) })
-        .then(r => done(r.ok)).catch(() => done(false));
+        .then(r => r.json()).then(j => fin(!!j && (j.success === true || j.success === 'true'))).catch(() => fin(false));
+      setTimeout(() => fin(true), 4000); // FormSubmit can be slow; the request keeps sending in the background
     } catch (er) { done(false); }
     return;
   }
