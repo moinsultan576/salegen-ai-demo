@@ -570,3 +570,7 @@ html[lang=ur] .sec h2{font-size:clamp(24px,2.6vw,34px)}
 .fc3{left:43%;top:85%;width:52%}
 .fi-ml{right:auto;left:3%;top:36%}
 .av{object-fit:cover}
+.chat3{flex:none;height:calc(100vh - 54px);min-height:480px}
+.cpanel{min-height:0}
+.ldp{overflow-y:auto}
+@media (max-width:900px){.chat3{height:auto}}
