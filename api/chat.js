@@ -60,12 +60,21 @@ function normalize(messages) {
 }
 
 function parse(text) {
-  const m = String(text || '').match(/\{[\s\S]*\}/);
-  try {
-    const j = JSON.parse(m ? m[0] : text);
-    if (j && typeof j.reply === 'string' && j.reply.trim()) return j;
-  } catch (e) {}
-  return text ? { reply: String(text).trim(), action: 'none', meeting: null, score_delta: 2 } : null;
+  let t = String(text || '').replace(/```(?:json)?/gi, '').trim();
+  const a = t.indexOf('{'), b = t.lastIndexOf('}');
+  if (a !== -1 && b > a) { try { const j = JSON.parse(t.slice(a, b + 1)); if (j && typeof j.reply === 'string' && j.reply.trim()) return j; } catch (e) {} }
+  // truncated / slightly broken JSON: pull the fields out by hand
+  const m = t.match(/"reply"\s*:\s*"((?:[^"\\]|\\.)*)/);
+  if (m) {
+    let reply; try { reply = JSON.parse('"' + m[1] + '"'); } catch (e) { reply = m[1].replace(/\\n/g, '\n').replace(/\\"/g, '"'); }
+    const closed = t.charAt(m.index + m[0].length) === '"';
+    if (!closed) { const cut = Math.max(...['.', '!', '?', '؟', '۔', '\n'].map(ch => reply.lastIndexOf(ch))); if (cut > 20) reply = reply.slice(0, cut + 1); }
+    const act = (t.match(/"action"\s*:\s*"(\w+)"/) || [])[1] || 'none';
+    const tm = t.match(/"time"\s*:\s*"(\d{1,2}:\d{2})"/), off = t.match(/"day_offset"\s*:\s*(\d+)/);
+    return { reply: reply.trim(), action: act, meeting: tm ? { day_offset: off ? +off[1] : 1, time: tm[1] } : null, score_delta: 3 };
+  }
+  if (!t || /^[\[{]/.test(t)) return null; // never show raw JSON to a visitor
+  return { reply: t, action: 'none', meeting: null, score_delta: 2 };
 }
 
 async function callAnthropic(system, messages) {
@@ -90,6 +99,16 @@ async function callOpenAI(system, messages) {
   return j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content;
 }
 
+function geminiBody(system, messages, lowThinking) {
+  const gc = { maxOutputTokens: 1500, temperature: 0.6, responseMimeType: 'application/json' };
+  if (lowThinking) gc.thinkingConfig = { thinkingLevel: 'low' };
+  return { systemInstruction: { parts: [{ text: system }] }, contents: messages.map(m => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] })), generationConfig: gc };
+}
+function geminiText(j) {
+  const parts = j && j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts || [];
+  return parts.filter(p => !p.thought).map(p => p.text || '').join('');
+}
+
 async function callGemini(system, messages) {
   const models = [...new Set([process.env.GEMINI_MODEL, 'gemini-3.5-flash', 'gemini-flash-latest', 'gemini-3-flash-preview', 'gemini-2.5-flash-lite'].filter(Boolean))];
   let last;
@@ -97,21 +116,21 @@ async function callGemini(system, messages) {
     const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent', {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: system }] },
-        contents: messages.map(m => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] })),
-        generationConfig: { maxOutputTokens: 2048, temperature: 0.6, responseMimeType: 'application/json' }
-      })
+      body: JSON.stringify(geminiBody(system, messages, true))
     });
+    if (r.status === 400) {
+      // this model does not accept the thinking setting — retry once without it
+      const r2 = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent', {
+        method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY }, body: JSON.stringify(geminiBody(system, messages, false)) });
+      if (r2.ok) { const t2 = geminiText(await r2.json()); if (t2) return t2; }
+    }
     if (!r.ok) {
       // 404/400 = model name not available; 429/500/503 = busy or rate-limited -> try the next model
       last = new Error('gemini ' + model + ' ' + r.status + ' ' + (await r.text()).slice(0, 160));
       if ([400, 404, 429, 500, 503].includes(r.status)) { if (r.status !== 404 && r.status !== 400) await new Promise(z => setTimeout(z, 400)); continue; }
       throw last;
     }
-    const j = await r.json();
-    const parts = j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts || [];
-    const text = parts.filter(p => !p.thought).map(p => p.text || '').join('');
+    const text = geminiText(await r.json());
     if (text) return text;
     last = new Error('gemini empty');
   }
@@ -160,7 +179,7 @@ module.exports = async (req, res) => {
     for (const [, fn] of active) { try { raw = await fn(system, messages); if (raw) break; } catch (er) { lastErr = er; console.error(er.message); } }
     if (!raw) throw lastErr || new Error('no provider answered');
     const out = parse(raw);
-    if (!out) throw new Error('empty reply');
+    if (!out) throw new Error('unparseable reply');
     const action = ['book_meeting', 'send_proposal'].includes(out.action) ? out.action : 'none';
     const mt = out.meeting && /^\d{1,2}:\d{2}$/.test(out.meeting.time) ? { day_offset: Math.max(0, Math.min(14, parseInt(out.meeting.day_offset, 10) || 1)), time: out.meeting.time } : null;
     return res.status(200).json({ reply: clip(out.reply, 1200), action, meeting: action === 'book_meeting' ? (mt || { day_offset: 1, time: '11:00' }) : null, score_delta: Math.max(0, Math.min(10, parseInt(out.score_delta, 10) || 2)) });
