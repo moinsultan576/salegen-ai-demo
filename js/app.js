@@ -864,7 +864,7 @@ document.addEventListener('submit', e => {
     const user = { name, email, company: (D.company || '').trim(), phone: (D.phone || '').trim(), ts: NOW() };
     store.set('sg_user', user);
     try {
-      fetch('https://formsubmit.co/ajax/' + OWNER.email, { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      fetch('https://formsubmit.co/ajax/' + OWNER.email, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify({ _subject: 'New demo visitor — SaleGen AI: ' + name, _template: 'table', _captcha: 'false', name, email, company: user.company || '-', whatsapp: user.phone || '-', language: LANG, opened: ui.next || '#/app/dashboard' }) }).catch(() => {});
     } catch (er) {}
     const to = ui.next && ui.next !== '#/login' ? ui.next : '#/app/dashboard'; ui.next = null;
