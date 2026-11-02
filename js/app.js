@@ -600,7 +600,7 @@ async function remoteAI(c, text) {
   const timer = setTimeout(() => ctl && ctl.abort(), 22000);
   try {
     const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: ctl ? ctl.signal : undefined,
-      body: JSON.stringify({ messages, lang: lg, kb, agent: { name: S.prefs.agName, tone: S.prefs.tone }, lead: { name: l.name, industry: l.ind ? tl('en', 'ind_' + l.ind) : (l.biz || ''), city: tl('en', 'city_' + l.city), stage: l.stage, channel: c.ch.replace(/\d/, '') } }) });
+      body: JSON.stringify({ messages, lang: lg, kb, visitor: (() => { const u = getUser() || {}; return { name: u.name, email: u.email, company: u.company }; })(), agent: { name: S.prefs.agName, tone: S.prefs.tone }, lead: { name: l.name, industry: l.ind ? tl('en', 'ind_' + l.ind) : (l.biz || ''), city: tl('en', 'city_' + l.city), stage: l.stage, channel: c.ch.replace(/\d/, '') } }) });
     if (res.status === 503 || res.status === 404 || res.status === 405) { aiRemote = false; return null; }
     if (!res.ok) return null;
     const j = await res.json();

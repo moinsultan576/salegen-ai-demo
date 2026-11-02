@@ -8,6 +8,8 @@
 // If several keys are set they are tried in that order, so a rate-limited free key falls through to the next.
 // Without a key the endpoint returns 503 and the demo falls back to built-in smart replies.
 
+const store = require('./_lib/store');
+
 const LANGS = { en: 'English', ar: 'Arabic (Saudi-friendly Modern Standard Arabic)', ur: 'Urdu (Urdu script)' };
 const hits = new Map(); // best-effort rate limit per IP (per warm instance)
 const LIMIT = 25, WINDOW = 10 * 60 * 1000;
@@ -182,7 +184,10 @@ module.exports = async (req, res) => {
     if (!out) throw new Error('unparseable reply');
     const action = ['book_meeting', 'send_proposal'].includes(out.action) ? out.action : 'none';
     const mt = out.meeting && /^\d{1,2}:\d{2}$/.test(out.meeting.time) ? { day_offset: Math.max(0, Math.min(14, parseInt(out.meeting.day_offset, 10) || 1)), time: out.meeting.time } : null;
-    return res.status(200).json({ reply: clip(out.reply, 1200), action, meeting: action === 'book_meeting' ? (mt || { day_offset: 1, time: '11:00' }) : null, score_delta: Math.max(0, Math.min(10, parseInt(out.score_delta, 10) || 2)) });
+    const reply = clip(out.reply, 1200);
+    const v = b.visitor && typeof b.visitor === 'object' ? { name: clip(b.visitor.name, 60), email: clip(b.visitor.email, 80), company: clip(b.visitor.company, 60) } : {};
+    await store.log('chats', { ts: Date.now(), v, lead: clip(b.lead && b.lead.name, 60), q: clip(messages[messages.length - 1].content, 500), a: reply.slice(0, 500), action, lang: clip(b.lang, 5) });
+    return res.status(200).json({ reply, action, meeting: action === 'book_meeting' ? (mt || { day_offset: 1, time: '11:00' }) : null, score_delta: Math.max(0, Math.min(10, parseInt(out.score_delta, 10) || 2)) });
   } catch (e) {
     console.error(e);
     return res.status(502).json({ error: 'AI unavailable' });

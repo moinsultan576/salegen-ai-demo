@@ -59,3 +59,11 @@ Get a WhatsApp message on your own number whenever someone starts a demo or send
 2. Send it this WhatsApp message: `I allow callmebot to send me messages` — it replies with your API key.
 3. Vercel → Settings → Environment Variables → add `CALLMEBOT_APIKEY` = that key (optional `CALLMEBOT_PHONE` = 966546904384).
 4. Redeploy. Email alerts keep working as before.
+
+## Daily WhatsApp report at 9 PM (Saudi time)
+Every night at 21:00 (Asia/Riyadh) you get a WhatsApp summary: new demo visitors, contact requests, every AI chat and an AI-written summary with hot leads.
+Needs (one time):
+1. Vercel → project → **Storage** → Create → **Upstash for Redis** (free) → connect to this project. Vercel adds the database keys automatically.
+2. `CALLMEBOT_APIKEY` set (see WhatsApp alerts above).
+3. Optional: add `CRON_SECRET` (any long random text) to run the report manually: `/api/daily-report?key=YOUR_SECRET&dry=1` shows a preview without sending.
+Chats are kept for 8 days, then deleted automatically. Visitors are told on the demo form that their details and demo chats are shared with you.
