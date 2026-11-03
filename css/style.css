@@ -636,3 +636,7 @@ html[lang=ur] .sec h2{font-size:clamp(24px,2.6vw,34px)}
 /* mobile: stats strip must not overflow the viewport */
 @media (max-width:640px){.stats{gap:14px;padding:24px 16px 8px}.stat{min-width:0;padding:6px 2px;gap:10px}.stat>div{min-width:0}.stat span{white-space:normal;font-size:13px;line-height:1.35}.stat .si{width:44px;height:44px;flex:none}.stat .si svg{width:22px;height:22px}.stat b{font-size:22px}}
 @media (max-width:600px){.fc3{display:none}.fcard .t{padding-inline-end:30px}}
+/* product tour: chat bubbles keep dark text inside the dark landing modal */
+#vchat .msg{color:#0f1d17;max-width:78%}
+#vchat .msg.sys{align-self:center;background:#ede9fe;color:#5b21b6;font-weight:600;padding:8px 14px;max-width:none}
+#vchat .typing{align-self:flex-end}
