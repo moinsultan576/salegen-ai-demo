@@ -142,7 +142,7 @@ function geminiText(j) {
 
 async function callGemini(system, messages) {
   // Fast models first: a chat demo needs a reply in a few seconds. "lite" models get no thinking config.
-  const models = [...new Set([process.env.GEMINI_MODEL, 'gemini-flash-lite-latest', 'gemini-2.5-flash-lite', 'gemini-flash-latest', 'gemini-3.5-flash'].filter(Boolean))];
+  const models = [...new Set([process.env.GEMINI_MODEL, 'gemini-flash-lite-latest', 'gemini-2.5-flash-lite', 'gemini-flash-latest'].filter(Boolean))];
   let last;
   const call = async (model, thinking, ms) => {
     const ctl = new AbortController(); const tm = setTimeout(() => ctl.abort(), ms);
@@ -157,10 +157,10 @@ async function callGemini(system, messages) {
   for (const model of models) {
     const lite = /lite/.test(model);
     let r;
-    try { r = await call(model, !lite, 9000); } catch (e) { last = new Error('gemini ' + model + ' timeout'); continue; }
+    try { r = await call(model, !lite, 6000); } catch (e) { last = new Error('gemini ' + model + ' timeout'); continue; }
     if (r.status === 400 && !lite) {
       // this model does not accept the thinking setting: retry once without it
-      try { const r2 = await call(model, false, 9000); if (r2.ok) { const t2 = geminiText(await r2.json()); if (t2) { callGemini.used = model; return t2; } } } catch (e) {}
+      try { const r2 = await call(model, false, 6000); if (r2.ok) { const t2 = geminiText(await r2.json()); if (t2) { callGemini.used = model; return t2; } } } catch (e) {}
     }
     if (!r.ok) {
       // 404/400 = model name not available; 429/500/503 = busy or rate-limited -> try the next model
@@ -194,7 +194,7 @@ async function callGroq(system, messages) {
 }
 
 const PROVIDERS = [
-  ['GEMINI_API_KEY', callGemini], ['GROQ_API_KEY', callGroq], ['ANTHROPIC_API_KEY', callAnthropic], ['OPENAI_API_KEY', callOpenAI]
+  ['GROQ_API_KEY', callGroq], ['GEMINI_API_KEY', callGemini], ['ANTHROPIC_API_KEY', callAnthropic], ['OPENAI_API_KEY', callOpenAI]
 ];
 
 module.exports = async (req, res) => {
