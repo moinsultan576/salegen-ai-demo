@@ -1,15 +1,6 @@
 {
   "headers": [
     {
-      "source": "/assets/portfolio/(.*)",
-      "headers": [
-        {
-          "key": "Access-Control-Allow-Origin",
-          "value": "https://moin-ai-digital-marketing.vercel.app"
-        }
-      ]
-    },
-    {
       "source": "/(.*)",
       "headers": [
         {
