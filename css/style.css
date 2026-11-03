@@ -633,3 +633,6 @@ html[lang=ur] .sec h2{font-size:clamp(24px,2.6vw,34px)}
 .chat-h>div{min-width:0}.chat-h small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .chat-h b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media (max-width:520px){.chat-h{gap:8px;padding:12px}.chat-h .tagp.t-hi,.chat-h .tagp.t-lo{display:none}}
+/* mobile: stats strip must not overflow the viewport */
+@media (max-width:640px){.stats{gap:14px;padding:24px 16px 8px}.stat{min-width:0;padding:6px 2px;gap:10px}.stat>div{min-width:0}.stat span{white-space:normal;font-size:13px;line-height:1.35}.stat .si{width:44px;height:44px;flex:none}.stat .si svg{width:22px;height:22px}.stat b{font-size:22px}}
+@media (max-width:600px){.fc3{display:none}.fcard .t{padding-inline-end:30px}}
