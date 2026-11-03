@@ -1,5 +1,5 @@
 // Instant WhatsApp alert to the site owner (CallMeBot) + log for the daily report.
-// Env: CALLMEBOT_APIKEY (required for WhatsApp), CALLMEBOT_PHONE (optional, default 966546904384)
+// Env: GREENAPI_ID_INSTANCE + GREENAPI_TOKEN, or CALLMEBOT_APIKEY (see api/_lib/wa.js)
 const { sendWhatsApp } = require('./_lib/wa');
 const store = require('./_lib/store');
 

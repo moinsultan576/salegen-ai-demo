@@ -70,3 +70,8 @@ Chats are kept for 8 days, then deleted automatically. Visitors are told on the 
 
 ## Personalize your demo
 Visitors can click **Personalize demo** (dashboard banner or the AI Agent top bar), enter their business name, type, services & prices, hours and location. A test WhatsApp chat (`#/agent/chat/cbiz`) opens where the AI agent answers as *their* business (Gemini/Groq with a business-specific prompt; built-in replies as fallback). The owner gets a 🎯 WhatsApp alert and it is counted in the daily report.
+
+### WhatsApp via GREEN-API (if CallMeBot gives no key)
+1. Sign up at console.green-api.com → create a free **Developer** instance → scan the QR with a *second* WhatsApp number (spare SIM / WhatsApp Business). The free plan allows 3 chats, unlimited messages.
+2. In Vercel → Environment Variables add `GREENAPI_ID_INSTANCE` (idInstance) and `GREENAPI_TOKEN` (apiTokenInstance). If the console shows a different apiUrl, also add `GREENAPI_URL`.
+3. Redeploy. `/api/health` should show `"whatsapp":"greenapi"`.
