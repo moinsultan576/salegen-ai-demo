@@ -141,28 +141,35 @@ function geminiText(j) {
 }
 
 async function callGemini(system, messages) {
-  const models = [...new Set([process.env.GEMINI_MODEL, 'gemini-3.5-flash', 'gemini-flash-latest', 'gemini-3-flash-preview', 'gemini-2.5-flash-lite'].filter(Boolean))];
+  // Fast models first: a chat demo needs a reply in a few seconds. "lite" models get no thinking config.
+  const models = [...new Set([process.env.GEMINI_MODEL, 'gemini-flash-lite-latest', 'gemini-2.5-flash-lite', 'gemini-flash-latest', 'gemini-3.5-flash'].filter(Boolean))];
   let last;
+  const call = async (model, thinking, ms) => {
+    const ctl = new AbortController(); const tm = setTimeout(() => ctl.abort(), ms);
+    try {
+      return await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent', {
+        method: 'POST', signal: ctl.signal,
+        headers: { 'content-type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY },
+        body: JSON.stringify(geminiBody(system, messages, thinking))
+      });
+    } finally { clearTimeout(tm); }
+  };
   for (const model of models) {
-    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY },
-      body: JSON.stringify(geminiBody(system, messages, true))
-    });
-    if (r.status === 400) {
-      // this model does not accept the thinking setting — retry once without it
-      const r2 = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent', {
-        method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY }, body: JSON.stringify(geminiBody(system, messages, false)) });
-      if (r2.ok) { const t2 = geminiText(await r2.json()); if (t2) return t2; }
+    const lite = /lite/.test(model);
+    let r;
+    try { r = await call(model, !lite, 9000); } catch (e) { last = new Error('gemini ' + model + ' timeout'); continue; }
+    if (r.status === 400 && !lite) {
+      // this model does not accept the thinking setting: retry once without it
+      try { const r2 = await call(model, false, 9000); if (r2.ok) { const t2 = geminiText(await r2.json()); if (t2) { callGemini.used = model; return t2; } } } catch (e) {}
     }
     if (!r.ok) {
       // 404/400 = model name not available; 429/500/503 = busy or rate-limited -> try the next model
       last = new Error('gemini ' + model + ' ' + r.status + ' ' + (await r.text()).slice(0, 160));
-      if ([400, 404, 429, 500, 503].includes(r.status)) { if (r.status !== 404 && r.status !== 400) await new Promise(z => setTimeout(z, 400)); continue; }
+      if ([400, 404, 429, 500, 503].includes(r.status)) continue;
       throw last;
     }
     const text = geminiText(await r.json());
-    if (text) return text;
+    if (text) { callGemini.used = model; return text; }
     last = new Error('gemini empty');
   }
   throw last || new Error('gemini failed');
@@ -205,6 +212,7 @@ module.exports = async (req, res) => {
   if (!messages.length || messages[messages.length - 1].role !== 'user') return res.status(400).json({ error: 'No user message' });
 
   try {
+    const t0 = Date.now();
     const system = systemPrompt(b);
     let raw = null, lastErr;
     for (const [, fn] of active) { try { raw = await fn(system, messages); if (raw) break; } catch (er) { lastErr = er; console.error(er.message); } }
@@ -216,6 +224,7 @@ module.exports = async (req, res) => {
     const reply = clip(out.reply, 1200);
     const v = b.visitor && typeof b.visitor === 'object' ? { name: clip(b.visitor.name, 60), email: clip(b.visitor.email, 80), company: clip(b.visitor.company, 60) } : {};
     await store.log('chats', { ts: Date.now(), v, lead: clip(b.lead && b.lead.name, 60), biz: b.biz && typeof b.biz === 'object' ? clip(b.biz.name, 60) : undefined, q: clip(messages[messages.length - 1].content, 500), a: reply.slice(0, 500), action, lang: clip(b.lang, 5) });
+    res.setHeader('X-AI-Ms', String(Date.now() - t0)); if (callGemini.used) res.setHeader('X-AI-Model', callGemini.used);
     return res.status(200).json({ reply, action, meeting: action === 'book_meeting' ? (mt || { day_offset: 1, time: '11:00' }) : null, score_delta: Math.max(0, Math.min(10, parseInt(out.score_delta, 10) || 2)) });
   } catch (e) {
     console.error(e);
