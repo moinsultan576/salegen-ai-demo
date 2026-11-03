@@ -30,6 +30,20 @@ ${transcript.slice(0, 12000)}`;
   return '';
 }
 
+// Email copy of the report via Resend (free: 100/day). Env: RESEND_API_KEY, optional REPORT_EMAIL.
+// Without a verified domain Resend only delivers to the Resend account's own email address.
+const escHtml = t => String(t).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+async function sendEmail(subject, text) {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) return { ok: false, reason: 'RESEND_API_KEY not set' };
+  try {
+    const html = '<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.6;white-space:pre-wrap">' + escHtml(text).replace(/\*([^*\n]+)\*/g, '<b>$1</b>') + '</div>';
+    const r = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: process.env.REPORT_FROM || 'SaleGen AI <onboarding@resend.dev>', to: [process.env.REPORT_EMAIL || 'moinseoagency@gmail.com'], subject, text, html }) });
+    return { ok: r.ok, status: r.status };
+  } catch (e) { return { ok: false, reason: e.message }; }
+}
+
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   const isCron = /vercel-cron/i.test(req.headers['user-agent'] || '');
@@ -65,6 +79,6 @@ module.exports = async (req, res) => {
   const text = lines.join('\n');
 
   if (req.query && req.query.dry) return res.status(200).json({ ok: true, dry: true, text });
-  const r = await sendWhatsApp(text);
-  return res.status(200).json({ ok: r.ok, parts: r.parts, reason: r.reason });
+  const [r, m] = await Promise.all([sendWhatsApp(text), sendEmail('SaleGen AI — Daily report ' + day, text)]);
+  return res.status(200).json({ ok: r.ok || m.ok, whatsapp: r, email: m });
 };

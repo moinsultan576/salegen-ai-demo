@@ -75,3 +75,6 @@ Visitors can click **Personalize demo** (dashboard banner or the AI Agent top ba
 1. Sign up at console.green-api.com → create a free **Developer** instance → scan the QR with a *second* WhatsApp number (spare SIM / WhatsApp Business). The free plan allows 3 chats, unlimited messages.
 2. In Vercel → Environment Variables add `GREENAPI_ID_INSTANCE` (idInstance) and `GREENAPI_TOKEN` (apiTokenInstance). If the console shows a different apiUrl, also add `GREENAPI_URL`.
 3. Redeploy. `/api/health` should show `"whatsapp":"greenapi"`.
+
+### Daily report by email (Resend)
+Sign up at resend.com **with moinseoagency@gmail.com** → API Keys → Create (Sending access). Add `RESEND_API_KEY` in Vercel and redeploy. The 9 PM report then also arrives by email (sent from onboarding@resend.dev — check Spam the first time and mark "Not spam").
